@@ -1,0 +1,119 @@
+// techweb — Prisma Schema
+// Database: SQLite (local development)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Domain Models ────────────────────────────────────────────
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  bio             String?
+  experienceLevel String?  // "beginner" | "intermediate" | "advanced"
+  image           String?
+  passwordHash    String?
+  location        String?
+  timezone        String?
+  eventPreference String @default("either")
+  sessions        Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skills       UserSkill[]
+  createdEvents Event[]       @relation("EventCreator")
+  createdTeams  Team[]        @relation("TeamCreator")
+  teamMembers   TeamMember[]
+}
+
+model Skill {
+  id       String @id @default(cuid())
+  name     String @unique
+  category String // "frontend" | "backend" | "design" | "devops" | "data" | "security"
+
+  userSkills UserSkill[]
+  requiredIn EventRequiredSkill[]
+}
+
+model UserSkill {
+  id          String @id @default(cuid())
+  userId      String
+  skillId     String
+  proficiency Int    @default(1) // 1-5
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model Event {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  type        String  // "hackathon" | "ctf"
+  mode        String  // "online" | "offline"
+  teamSizeMin Int     @default(2)
+  teamSizeMax Int     @default(5)
+  location    String?
+  date        String? // ISO date string
+  createdBy   String
+  diversityRuleText String?
+  regionRestriction String?
+  requiredSkills EventRequiredSkill[]
+
+  createdAt DateTime @default(now())
+
+  creator User   @relation("EventCreator", fields: [createdBy], references: [id])
+  teams   Team[]
+}
+
+model Team {
+  id        String @id @default(cuid())
+  eventId   String
+  name      String
+  createdBy String
+
+  createdAt DateTime @default(now())
+
+  event   Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  creator User         @relation("TeamCreator", fields: [createdBy], references: [id])
+  members TeamMember[]
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  role     String   @default("member") // "leader" | "member"
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model EventRequiredSkill {
+  eventId String
+  skillId String
+  minCount Int @default(1)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  @@id([eventId, skillId])
+}
+
+model Session {
+  tokenHash String @id
+  userId String
+  expiresAt DateTime
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
