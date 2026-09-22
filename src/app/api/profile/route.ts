@@ -1,10 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/auth';
-import { choice, failure, HttpError, integer, sameOrigin, text } from '@/lib/http';
+import { choice, failure, HttpError, sameOrigin, text } from '@/lib/http';
+import { emailAddress, publicProfileSelect, resolveSkills, skillNames, website } from '@/lib/profile';
+
 export async function GET() {
   try {
     const user = await requireUser();
-    return Response.json(await prisma.user.findUnique({ where: { id: user.id }, select: { id: true, name: true, bio: true, location: true, timezone: true, eventPreference: true, experienceLevel: true, skills: true } }));
+    return Response.json(await prisma.user.findUnique({ where: { id: user.id }, select: { ...publicProfileSelect, email: true, contactEmail: true, emailVerified: true } }));
   } catch (error) { return failure(error); }
 }
 export async function POST(request: Request) {
@@ -14,17 +16,27 @@ export async function POST(request: Request) {
     const b = await request.json();
     const timezone = text(b.timezone, 'Timezone', 80, true);
     if (timezone) { try { new Intl.DateTimeFormat('en', { timeZone: timezone }); } catch { throw new HttpError('Enter an IANA timezone, such as Asia/Kolkata.'); } }
-    if (!Array.isArray(b.skills) || b.skills.length > 50) throw new HttpError('Choose up to 50 skills.');
-    const skills = b.skills.map((s: { skillId: unknown; proficiency: unknown }) => ({ skillId: text(s.skillId, 'Skill'), proficiency: integer(s.proficiency, 1, 5, 'Proficiency') }));
-    if (new Set(skills.map((s: { skillId: string }) => s.skillId)).size !== skills.length) throw new HttpError('Duplicate skill.');
-    if (await prisma.skill.count({ where: { id: { in: skills.map((s: { skillId: string }) => s.skillId) } } }) !== skills.length) throw new HttpError('Unknown skill.');
-    await prisma.user.update({ where: { id: user.id }, data: {
+    const names = skillNames(b.skills);
+    if (!Array.isArray(b.links) || b.links.length > 10) throw new HttpError('Add up to 10 work or research links.');
+    const links = b.links.map((link: { label?: unknown; url?: unknown } | null) => {
+      if (!link) throw new HttpError('Invalid work link.');
+      const url = website(link.url, 'Work link');
+      if (!url) throw new HttpError('Enter a URL for each work link.');
+      return { label: text(link.label, 'Link title', 80), url };
+    });
+    const data = {
       name: text(b.name, 'Name', 80), bio: text(b.bio, 'Bio', 1000, true) || null,
       location: text(b.location, 'Location', 100, true) || null, timezone: timezone || null,
-      experienceLevel: choice(b.experienceLevel, ['beginner', 'intermediate', 'advanced'], 'experience level'),
+      contactEmail: emailAddress(b.contactEmail), linkedinUrl: website(b.linkedinUrl, 'LinkedIn'), githubUrl: website(b.githubUrl, 'GitHub'),
       eventPreference: choice(b.eventPreference, ['online', 'offline', 'either'], 'event preference'),
-      skills: { deleteMany: {}, create: skills },
-    } });
+    };
+    await prisma.$transaction(async tx => {
+      const ids = await resolveSkills(tx, names);
+      await tx.user.update({ where: { id: user.id }, data: { ...data,
+        skills: { deleteMany: {}, create: ids.map(skillId => ({ skillId })) },
+        links: { deleteMany: {}, create: links },
+      } });
+    });
     return Response.json({ ok: true });
   } catch (error) { return failure(error); }
 }

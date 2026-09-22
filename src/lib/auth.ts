@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { cookies } from 'next/headers';
 import { prisma } from './prisma';
 import { HttpError } from './http';
+import { cache } from 'react';
 const scrypt = promisify(scryptCallback);
 const cookieName = 'techweb_session';
 const digest = (token: string) => createHash('sha256').update(token).digest('hex');
@@ -18,12 +19,12 @@ export async function verifyPassword(password: string, stored: string) {
   const saved = Buffer.from(expected, 'hex');
   return key.length === saved.length && timingSafeEqual(key, saved);
 }
-export async function currentUser() {
+export const currentUser = cache(async function currentUser() {
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) return null;
   const session = await prisma.session.findUnique({ where: { tokenHash: digest(token) }, include: { user: true } });
   return session && session.expiresAt > new Date() ? session.user : null;
-}
+});
 export async function requireUser() {
   const user = await currentUser();
   if (!user) throw new HttpError('Sign in to continue.', 401);

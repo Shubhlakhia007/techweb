@@ -15,7 +15,7 @@ export function checkCandidateEligibility(candidate: CandidateInfo, event: Event
     const regions = candidate.location?.split(',').map(s => s.trim().toLowerCase()) ?? [];
     if (!regions.includes(event.regionRestriction.trim().toLowerCase())) results.push({ rule: 'Region', status: 'fail', reason: 'Profile location must include the region: ' + event.regionRestriction });
   }
-  if (event.mode === 'offline') results.push({ rule: 'Travel', status: 'manual', reason: 'Confirm you can travel to ' + (event.location || 'the venue') + '. Travel distance is not automatically verified.' });
+  if (event.mode === 'offline' || event.mode === 'hybrid') results.push({ rule: 'Travel', status: 'manual', reason: 'Confirm you can travel to ' + (event.location || 'the venue') + '. Travel distance is not automatically verified.' });
   else results.push({ rule: 'Availability', status: 'manual', reason: 'Agree on working hours with the team. Timezone alone does not establish availability.' });
   return { eligible: !results.some(r => r.status === 'fail'), results };
 }

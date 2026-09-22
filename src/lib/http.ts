@@ -6,6 +6,7 @@ export function failure(error: unknown) {
   if (error instanceof HttpError) return Response.json({ error: error.message }, { status: error.status });
   if (error instanceof SyntaxError) return Response.json({ error: 'Invalid JSON.' }, { status: 400 });
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return Response.json({ error: 'This record already exists.' }, { status: 409 });
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') return Response.json({ error: 'The team changed while you were joining. Please try again.' }, { status: 409 });
   console.error(error);
   return Response.json({ error: 'Unable to complete this request.' }, { status: 500 });
 }

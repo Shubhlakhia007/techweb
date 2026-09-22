@@ -44,3 +44,8 @@ prisma/*.db*
 
 # Local archives
 *.zip
+
+.npm-cache/
+!.env.example
+
+prisma/neon/schema.prisma

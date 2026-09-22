@@ -9,13 +9,17 @@
     "lint": "eslint",
     "db:push": "npx prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
-    "db:reset": "npx prisma db push --force-reset && npx tsx prisma/seed.ts"
+    "db:reset": "npx prisma db push --force-reset && npx tsx prisma/seed.ts",
+    "build:vercel": "node scripts/neon-schema.mjs && prisma generate --schema prisma/neon/schema.prisma && prisma migrate deploy --schema prisma/neon/schema.prisma && next build",
+    "db:neon:prepare": "node scripts/neon-schema.mjs",
+    "test:security": "tsx --test scripts/security.test.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
+    "jose": "^6.2.12",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8"

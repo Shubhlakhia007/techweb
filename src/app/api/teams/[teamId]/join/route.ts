@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tea
       const check = checkCandidateEligibility(user, team.event, team.members.length);
       if (!check.eligible) throw new HttpError(check.results.filter(r => r.status === 'fail').map(r => r.reason).join(' '), 409);
       await tx.teamMember.create({ data: { teamId, userId: user.id } });
-    });
+    }, { isolationLevel: 'Serializable' });
     return Response.json({ ok: true });
   } catch (error) { return failure(error); }
 }

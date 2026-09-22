@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     let user = await prisma.user.findUnique({ where: { email } });
     if (body.action === 'register') {
       if (user) throw new HttpError('This email is already registered.', 409);
-      user = await prisma.user.create({ data: { email, name: text(body.name, 'Name', 80), passwordHash: await hashPassword(body.password) } });
+      user = await prisma.user.create({ data: { email, contactEmail: email, name: text(body.name, 'Name', 80), passwordHash: await hashPassword(body.password) } });
     } else if (!user?.passwordHash || !await verifyPassword(body.password, user.passwordHash)) {
       throw new HttpError('Email or password is incorrect.', 401);
     }

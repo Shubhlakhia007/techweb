@@ -20,6 +20,12 @@ model User {
   experienceLevel String?  // "beginner" | "intermediate" | "advanced"
   image           String?
   passwordHash    String?
+  googleId        String? @unique
+  emailVerified   Boolean @default(false)
+  contactEmail    String?
+  linkedinUrl     String?
+  githubUrl       String?
+  links           ProfileLink[]
   location        String?
   timezone        String?
   eventPreference String @default("either")
@@ -61,6 +67,11 @@ model Event {
   description String?
   type        String  // "hackathon" | "ctf"
   mode        String  // "online" | "offline"
+  scope       String @default("unspecified")
+  localArea   String?
+  websiteUrl  String?
+  verificationStatus String @default("unverified")
+  rounds      EventRound[]
   teamSizeMin Int     @default(2)
   teamSizeMax Int     @default(5)
   location    String?
@@ -116,4 +127,24 @@ model Session {
   userId String
   expiresAt DateTime
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProfileLink {
+  id String @id @default(cuid())
+  userId String
+  label String
+  url String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EventRound {
+  id String @id @default(cuid())
+  eventId String
+  position Int
+  name String
+  mode String
+  location String?
+  date String?
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  @@unique([eventId, position])
 }

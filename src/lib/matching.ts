@@ -5,7 +5,6 @@
 
 type MemberSkill = {
   skillId: string;
-  proficiency: number;
 };
 
 type TeamMember = {
@@ -32,7 +31,7 @@ type Candidate = {
 export type ScoredCandidate = {
   user: Candidate;
   score: number;
-  matchingSkills: { skillId: string; skillName: string; proficiency: number }[];
+  matchingSkills: { skillId: string; skillName: string }[];
 };
 
 /**
@@ -70,7 +69,7 @@ export function computeGapVector(
 
 /**
  * Score a single candidate by how well they fill the skill gaps.
- * Proficiency is used as a weight — higher proficiency = higher contribution.
+ * Every matching skill contributes equally; self-ratings are not used.
  */
 export function candidateScore(
   candidate: Candidate,
@@ -82,9 +81,7 @@ export function candidateScore(
 
   for (const skill of candidate.skills) {
     if (gapVector.has(skill.skillId) && (gapVector.get(skill.skillId) ?? 0) > 0) {
-      // Weight by proficiency (1-5) normalized to 0.2-1.0
-      const weight = skill.proficiency / 5;
-      score += weight;
+      score += 1;
 
       const skillInfo = requiredSkills.find(
         (rs) => rs.skillId === skill.skillId
@@ -92,7 +89,6 @@ export function candidateScore(
       matchingSkills.push({
         skillId: skill.skillId,
         skillName: skillInfo?.skillName ?? skill.skillId,
-        proficiency: skill.proficiency,
       });
     }
   }
