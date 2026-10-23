@@ -49,3 +49,4 @@ prisma/*.db*
 !.env.example
 
 prisma/neon/schema.prisma
+.neon
